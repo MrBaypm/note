@@ -118,16 +118,82 @@ public class BR {
 2.创建绑定类实例，初始化布局中的所有 View 成员变量（生成类中已实现，直接调用 findViewById）；
 3.将绑定类实例和当前页面的 View 关联，完成初始化。
 
-
-阶段 2：单向绑定的实现（数据→UI）
-单向绑定是 DataBinding 的基础，实现 “数据对象属性变化→UI 自动刷新”，底层依赖观察者模式，分两种实现方式（根据数据对象的类型）：
-
-
 常用初始化代码：
 // Activity中初始化
 ActivityMainBinding binding = DataBindingUtil.setContentView(this, R.layout.activity_main);
 // Fragment中初始化
 ActivityMainBinding binding = ActivityMainBinding.inflate(getLayoutInflater(), container, false);
+
+
+
+阶段 2：单向绑定的实现（数据→UI）
+单向绑定是 DataBinding 的基础，实现 “数据对象属性变化→UI 自动刷新”，底层依赖观察者模式，分两种实现方式（根据数据对象的类型）：
+
+方式 1：数据对象继承 BaseObservable（推荐）
+这是官方推荐的方式，BaseObservable是 DataBinding 提供的观察者基类，内部维护了一个观察者列表（用于存放 DataBinding 的绑定类），核心流程：
+1.数据对象（如 User）继承BaseObservable，并给需要观察的属性添加@Bindable注解（编译期会生成对应的 BR 常量）；
+2.属性的 setter 方法中调用notifyPropertyChanged(BR.xxx)，通知观察者 “该属性已变化”；
+3.DataBinding 的绑定类作为观察者，接收到属性变化通知后，标记mDirtyFlags = true，并调用executeBindings()执行绑定逻辑，刷新对应 UI。
+
+User 类示例：
+public class User extends BaseObservable {
+    private String name;
+
+    // @Bindable：编译期生成BR.name常量，标记该属性可被观察
+    @Bindable
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+        // 通知观察者：name属性变化（BR.name是编译期生成的标识）
+        notifyPropertyChanged(BR.name);
+        // 若要通知所有属性变化，调用notifyChange() → 对应BR._all
+    }
+}
+
+方式 2：使用 ObservableField（简化版，无需继承 BaseObservable）
+对于简单的数据对象，DataBinding 提供了ObservableField（以及 ObservableInt、ObservableBoolean 等基本类型封装），它是对BaseObservable的轻量封装，内部已实现观察者逻辑，无需手动加注解和调用通知方法。
+底层原理：ObservableField内部持有一个属性值，并重写了 get/set 方法，set 方法被调用时，会自动触发notifyPropertyChanged，通知 DataBinding 刷新 UI。
+
+使用示例：
+public class User {
+    // 直接定义可观察的属性，无需继承BaseObservable
+    public final ObservableField<String> name = new ObservableField<>();
+    public final ObservableInt age = new ObservableInt();
+}
+// 赋值时自动触发通知
+user.name.set("张三"); // 数据变化→UI自动刷新
+
+阶段 3：双向绑定的实现（UI→数据→UI）
+双向绑定是在单向绑定的基础上，增加了UI 变化监听→数据对象更新的逻辑，布局中通过@={}替代@{}（如android:text="@={user.name}"），底层实现分两步：
+UI→数据：DataBinding 自动给 View 设置事件监听器（如 TextView 的TextWatcher、EditText 的OnTextChanged、CheckBox 的OnCheckedChangeListener），当 UI 发生变化时（如用户输入文字），监听器会被触发，调用数据对象的 setter 方法更新属性值；
+数据→UI：数据对象更新后，通过上述的观察者模式，再自动刷新 UI（和单向绑定一致），完成闭环。
+双向绑定的底层核心：注解处理器在解析@={}表达式时，会在生成的绑定类中同时生成 “数据→UI” 的赋值逻辑和 “UI→数据” 的事件监听逻辑。比如解析android:text="@={user.name}"时，会给 TextView 设置TextWatcher，在onTextChanged中调用user.setName(newText)，从而实现 UI 变化驱动数据更新。
+
+阶段 4：executeBindings () 的执行与性能优化
+executeBindings()是生成类中执行绑定的核心方法，DataBinding 为了避免频繁刷新 UI 做了多重优化：
+脏标记（DirtyFlags）：只有数据变化时，才会将mDirtyFlags置为 true，否则直接跳过执行，避免无意义的 UI 操作；
+批量更新：多次数据变化会先累积脏标记，再通过notifyChange()批量触发executeBindings()，而非每次变化都执行；
+局部刷新：通过notifyPropertyChanged(BR.xxx)只标记单个属性变化，executeBindings()中仅刷新该属性对应的 UI，而非整个页面；
+主线程执行：executeBindings()始终在主线程执行，避免子线程更新 UI 的异常，DataBinding 内部会通过Handler将绑定逻辑切到主线程。
+
+三、DataBinding 的核心基类：ViewDataBinding
+所有自动生成的绑定类（如 ActivityMainBinding）都继承自ViewDataBinding，这个基类是 DataBinding 框架的 “骨架”，提供了所有绑定类的通用能力：
+维护脏标记（DirtyFlags），控制executeBindings()的执行时机；
+提供数据通知方法（notifyChange()、notifyPropertyChanged()），触发绑定逻辑；
+管理生命周期：可绑定 LifecycleOwner（如 Activity/Fragment），自动感知页面生命周期，避免页面销毁后仍执行绑定逻辑导致的内存泄漏；
+提供解绑方法（unbind()），释放 View 和数据对象的引用，优化内存。
+
+
+四、关键补充：为什么 DataBinding 性能好？
+很多人误以为 DataBinding 有反射开销，实际几乎无反射开销，性能和手动编写 findViewById + 设置数据持平，原因：
+编译期生成代码：View 的初始化、数据绑定的逻辑都是编译期生成的，运行期直接调用，无反射；
+仅一次反射：只有在DataBindingUtil初始化获取绑定类时，会通过反射找到生成的绑定类，后续所有操作都是直接调用生成类的方法；
+脏标记优化：避免无意义的 UI 刷新，仅在数据变化时执行绑定逻辑；
+局部刷新：通过 BR 常量标记单个属性变化，只刷新对应 UI，而非整个页面。
+
 
 DataBinding 的底层实现是编译期 APT 注解处理和运行期观察者模式的结合，核心流程可概括为 3 句话：
 编译期：注解处理器解析 DataBinding 布局，自动生成XXXBinding 绑定类和BR 标识类，绑定类持有 View 引用并实现数据绑定逻辑；
