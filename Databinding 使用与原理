@@ -39,6 +39,21 @@
 </layout>
 
 
+一、编译期：核心是 APT 生成绑定类（最关键的一步）
+DataBinding 的工作从编译阶段就开始了，这一步是实现 “省去 findViewById” 的核心，也是性能优于手动 findViewById 的原因（编译期生成代码，无运行期反射开销）。当你在项目中开启 
+DataBinding（build.gradle中设置dataBinding { enabled = true }）后，编译时会触发DataBinding 注解处理器（androidx.databinding:databinding-compiler），执行以下操作：
+1. 解析布局文件
+注解处理器会扫描所有以<layout>为根标签的布局文件（DataBinding 的专属布局），解析其中的核心信息：
+布局中的View 控件：提取id（如@+id/tv_name）、控件类型（如TextView）、所在的布局层级；
+布局中的数据变量：解析<data>标签内的变量定义（如variable name="user" type="com.example.User"）；
+布局中的绑定表达式：解析 UI 上绑定的表达式（如android:text="@{user.name}"、android:click="@{()->vm.click()}"）。
+2. 生成绑定类（核心产物：XXXBinding.java）
+注解处理器根据解析的布局信息，自动在build/generated/data_binding_base_class_source_out/目录下生成对应的绑定类，命名规则是：
+默认按布局文件名驼峰命名 +Binding（如activity_main.xml → ActivityMainBinding）；
+若布局在子目录（如layout/module1/fragment_info.xml）→ Module1FragmentInfoBinding。
+这个自动生成的绑定类是DataBinding 的核心载体，它做了 3 件关键事：① 定义布局中所有带id的 View 的成员变量（如public final TextView tvName;），直接持有 View 引用，无需运行期 findViewById；
+② 定义<data>标签中所有数据变量的setter 方法（如public void setUser(User user)），用于给绑定类设置数据对象；③ 生成绑定逻辑方法（如executeBindings()），负责将数据对象的属性值通过绑定表达式赋值给对应的 View，这是数据驱动 UI 的核心。
+
 生成类的简化示例（对应activity_main.xml，包含tv_name和user变量）：
 // 自动生成的绑定类，继承自ViewDataBinding（DataBinding的基类）
 public class ActivityMainBinding extends ViewDataBinding {
