@@ -83,6 +83,12 @@ public class ActivityMainBinding extends ViewDataBinding {
 }
 
 
+常用初始化代码：
+// Activity中初始化
+ActivityMainBinding binding = DataBindingUtil.setContentView(this, R.layout.activity_main);
+// Fragment中初始化
+ActivityMainBinding binding = ActivityMainBinding.inflate(getLayoutInflater(), container, false);
+
 DataBinding 的底层实现是编译期 APT 注解处理和运行期观察者模式的结合，核心流程可概括为 3 句话：
 编译期：注解处理器解析 DataBinding 布局，自动生成XXXBinding 绑定类和BR 标识类，绑定类持有 View 引用并实现数据绑定逻辑；
 运行期：通过 DataBindingUtil 初始化绑定类（仅一次反射），将数据对象设置给绑定类，通过BaseObservable/ObservableField实现数据观察；
