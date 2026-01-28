@@ -1,1 +1,9 @@
-DataBinding 的核心是通过注解处理器（APT）在编译期自动生成绑定类，将布局中的 View 和数据对象建立映射，再通过观察者模式实现数据和 UI 的双向同步，全程无需手动 findViewById 和设置数据，底层是注解处理 + 反射 / 直接调用 + 观察者模式的组合实现。
+    DataBinding 的核心是通过注解处理器（APT）在编译期自动生成绑定类，将布局中的 View 和数据对象建立映射，再通过观察者模式实现数据和 UI 的双向同步，全程无需手动 findViewById 和设置数据，
+底层是注解处理 + 反射 / 直接调用 + 观察者模式的组合实现。
+
+
+DataBinding 的底层实现是编译期 APT 注解处理和运行期观察者模式的结合，核心流程可概括为 3 句话：
+编译期：注解处理器解析 DataBinding 布局，自动生成XXXBinding 绑定类和BR 标识类，绑定类持有 View 引用并实现数据绑定逻辑；
+运行期：通过 DataBindingUtil 初始化绑定类（仅一次反射），将数据对象设置给绑定类，通过BaseObservable/ObservableField实现数据观察；
+同步逻辑：数据变化时触发通知，绑定类执行executeBindings()将数据赋值给 View（数据→UI）；双向绑定则通过 View 的事件监听器实现 UI 变化更新数据（UI→数据），完成双向同步。
+简单来说，DataBinding 的本质是框架替你手写了 findViewById、数据设置、UI 监听的代码，让开发者从繁琐的 UI 操作中解放，同时通过编译期优化保证了性能。
