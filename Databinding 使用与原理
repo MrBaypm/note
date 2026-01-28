@@ -2,6 +2,43 @@
 底层是注解处理 + 反射 / 直接调用 + 观察者模式的组合实现。
 
 
+<?xml version="1.0" encoding="utf-8"?>
+<!-- DataBinding 核心：根标签必须是 layout，替代传统的 LinearLayout/ConstraintLayout -->
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- 数据变量区：定义布局中要绑定的数据对象，对应 BR.user 生成 -->
+    <data>
+        <!-- 定义变量名 user，类型为自定义的 User 实体类（需写全类名） -->
+        <variable
+            name="user"
+            type="com.example.databindingdemo.User" />
+    </data>
+
+    <!-- 实际 UI 布局：使用 ConstraintLayout 作为根布局（推荐），内部放需要绑定的 View -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        tools:context=".MainActivity">
+
+        <!-- 绑定 User 的 name 属性：@{user.name} 是 DataBinding 核心表达式 -->
+        <TextView
+            android:id="@+id/tv_name" <!-- 带 id，编译期生成绑定类的成员变量 tvName -->
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@{user.name}" <!-- 数据→UI 单向绑定 -->
+            android:textSize="20sp"
+            android:textColor="#333333"
+            tools:text="默认名称" <!-- 预览布局用，不影响运行时 -->
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</layout>
+
+
 DataBinding 的底层实现是编译期 APT 注解处理和运行期观察者模式的结合，核心流程可概括为 3 句话：
 编译期：注解处理器解析 DataBinding 布局，自动生成XXXBinding 绑定类和BR 标识类，绑定类持有 View 引用并实现数据绑定逻辑；
 运行期：通过 DataBindingUtil 初始化绑定类（仅一次反射），将数据对象设置给绑定类，通过BaseObservable/ObservableField实现数据观察；
