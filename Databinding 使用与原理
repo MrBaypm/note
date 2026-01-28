@@ -97,6 +97,31 @@ public class ActivityMainBinding extends ViewDataBinding {
     }
 }
 
+3. 生成 BR 类（数据变化的标识）
+注解处理器还会生成一个BR 类（在build/generated/source/br/目录下），这是一个包含常量的类，用于标记数据对象的哪个属性发生了变化，类似 R 类（资源标识）。
+布局中<data>标签的每个变量，会生成一个 BR 常量（如BR.user）；
+数据对象中被@Bindable注解标记的属性，会生成对应的 BR 常量（如BR.name），用于局部刷新（只刷新变化的属性，而非整个页面）。
+
+BR 类的简化示例：
+public class BR {
+    public static final int _all = 0; // 全局刷新标识
+    public static final int user = 1; // 数据变量user的标识
+    public static final int name = 2; // User类中@Bindable标记的name属性标识
+}
+
+
+二、运行期：核心是 “绑定初始化 + 数据观察 + UI 同步”
+编译期生成了绑定类、BR 类后，运行期的工作就是初始化绑定、建立数据观察、触发绑定逻辑，实现 “数据变→UI 变”，分为基础绑定（单向）和双向绑定两个场景，核心是观察者模式。
+阶段 1：初始化 DataBinding，获取绑定类实例
+我们在 Activity/Fragment 中通过DataBindingUtil.setContentView()或inflate()获取绑定类实例，这一步的底层是：
+1.根据布局 ID，通过反射找到编译期生成的绑定类（仅这一次反射，后续无反射开销）；
+2.创建绑定类实例，初始化布局中的所有 View 成员变量（生成类中已实现，直接调用 findViewById）；
+3.将绑定类实例和当前页面的 View 关联，完成初始化。
+
+
+阶段 2：单向绑定的实现（数据→UI）
+单向绑定是 DataBinding 的基础，实现 “数据对象属性变化→UI 自动刷新”，底层依赖观察者模式，分两种实现方式（根据数据对象的类型）：
+
 
 常用初始化代码：
 // Activity中初始化
