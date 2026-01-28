@@ -39,6 +39,50 @@
 </layout>
 
 
+生成类的简化示例（对应activity_main.xml，包含tv_name和user变量）：
+// 自动生成的绑定类，继承自ViewDataBinding（DataBinding的基类）
+public class ActivityMainBinding extends ViewDataBinding {
+    // 布局中带id的View，直接作为成员变量（编译期初始化，无反射）
+    public final TextView tvName;
+    // 数据对象的引用
+    private User mUser;
+    // 标记是否需要重新执行绑定（优化性能，避免重复刷新）
+    private boolean mDirtyFlags = true;
+
+    // 构造方法：初始化View、绑定LayoutInflater
+    protected ActivityMainBinding(LayoutInflater inflater, ViewGroup root) {
+        super(inflater, root);
+        // 编译期自动生成的View初始化逻辑，替代findViewById
+        this.tvName = root.findViewById(R.id.tv_name);
+        // 给View设置标签，关联绑定类（用于后续查找）
+        this.tvName.setTag(null);
+    }
+
+    // 给绑定类设置数据对象的setter方法
+    public void setUser(User user) {
+        this.mUser = user;
+        // 标记数据变化，需要刷新UI
+        this.mDirtyFlags = true;
+        // 触发绑定逻辑执行
+        notifyChange();
+    }
+
+    // 核心：执行数据和View的绑定，由DataBinding框架调用
+    @Override
+    protected void executeBindings() {
+        // 双重校验：避免多线程重复执行，优化性能
+        synchronized (this) {
+            if (!mDirtyFlags) return;
+            mDirtyFlags = false;
+        }
+        // 解析绑定表达式：@{user.name}，获取数据并赋值给View
+        String userName = mUser == null ? "" : mUser.getName();
+        // 给View设置数据，完成UI刷新
+        this.tvName.setText(userName);
+    }
+}
+
+
 DataBinding 的底层实现是编译期 APT 注解处理和运行期观察者模式的结合，核心流程可概括为 3 句话：
 编译期：注解处理器解析 DataBinding 布局，自动生成XXXBinding 绑定类和BR 标识类，绑定类持有 View 引用并实现数据绑定逻辑；
 运行期：通过 DataBindingUtil 初始化绑定类（仅一次反射），将数据对象设置给绑定类，通过BaseObservable/ObservableField实现数据观察；
