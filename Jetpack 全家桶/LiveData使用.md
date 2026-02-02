@@ -1,8 +1,8 @@
-#一、LiveData 核心使用场景
+# 一、LiveData 核心使用场景
    LiveData 是 Android Jetpack 中的一个可观察的数据持有者，它的核心优势是感知生命周期，能确保数据更新只发送给处于活跃状态（STARTED/RESUMED）的组件
 （如 Activity/Fragment），避免内存泄漏和空指针。
 
-#二、LiveData 常见问题与痛点
+# 二、LiveData 常见问题与痛点
    粘性事件（Sticky Event）：LiveData 会保存最新数据，新注册的观察者会立即收到这个 “旧数据”。比如：页面 A 发送了数据，跳转到页面 B 后观察同一个 LiveData，
 B 会立即收到 A 的旧数据，这在很多场景下是不需要的（如一次性事件：弹窗、Toast、页面跳转）。
    
