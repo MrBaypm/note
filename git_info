@@ -1,0 +1,19 @@
+每次提交前记得
+git pull --rebase  
+
+
+第一次提交
+git add .
+git status
+git commit -m  "fix bugs "
+
+
+追加代码 
+git commit -s --amend
+git push --force-with-lease origin your-branch
+
+建新分支
+git checkout -b fixbug
+
+
+git cherry-pick  commit-id  将提交代码搞到某个分支
