@@ -36,7 +36,7 @@ replay = 1：和 StateFlow 行为一致（重放最新 1 条）
 如果必须用 StateFlow（比如需要持有页面状态），可以给数据包装一层 “消费状态”，确保数据只被处理一次
 
 
-## StateFlow vs LiveData 数据倒灌核心区别
+# 四、 StateFlow vs LiveData 数据倒灌核心区别
 | 特性 | LiveData | StateFlow | SharedFlow (replay=0) |
 | ---- | -------- | --------- | -------------------- |
 | 默认是否有倒灌 | 是（保存最新值） | 是（保存最新值，需默认值） | 否 |
