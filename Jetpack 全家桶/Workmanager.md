@@ -49,7 +49,6 @@
 
 ### 1. 基础使用（单次任务）
 
-```kotlin
 // 1. 自定义 Worker
 class LogUploadWorker(context: Context, params: WorkerParameters) : Worker(context, params) {
     override fun doWork(): Result {
