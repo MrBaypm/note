@@ -75,14 +75,14 @@ val workRequest = OneTimeWorkRequestBuilder<FileDownloadWorker>()
     .setConstraints(constraints)
     .build()
 
-3. 周期性任务（15 分钟）
+4. 周期性任务（15 分钟）
 val periodicWork = PeriodicWorkRequestBuilder<DataSyncWorker>(15, TimeUnit.MINUTES)
     .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
     .build()
 WorkManager.getInstance(this).enqueue(periodicWork)
 ⚠️ 注意：最小周期为 15 分钟（受系统限制）。
 
-4. 任务监听与取消
+5. 任务监听与取消
 // 监听状态
 WorkManager.getInstance(this).getWorkInfoByIdLiveData(workRequest.id)
     .observe(this) { info ->
