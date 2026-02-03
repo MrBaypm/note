@@ -59,7 +59,7 @@ class LogUploadWorker(context: Context, params: WorkerParameters) : Worker(conte
     }
 }
 
-// 2. 提交任务
+ 2. 提交任务
 val inputData = Data.Builder().putString("user_id", "10086").build()
 val workRequest = OneTimeWorkRequestBuilder<LogUploadWorker>()
     .setInputData(inputData)
@@ -95,3 +95,32 @@ WorkManager.getInstance(this).getWorkInfoByIdLiveData(workRequest.id)
 
 // 取消任务
 WorkManager.getInstance(this).cancelWorkById(workRequest.id)
+
+
+## 四、与替代方案对比（面试加分项）
+
+| 工具                | 适用场景                     | 优缺点 |
+|---------------------|------------------------------|--------|
+| **WorkManager**     | 后台静默、需保证执行的任务   | ✅ 官方维护、兼容性好、功能完善<br>❌ 不支持实时任务 |
+| **Foreground Service** | 音乐播放、导航等前台任务   | ✅ 优先级高、不被系统杀死<br>❌ 需通知权限，无持久化 |
+| **JobScheduler**    | API 21+ 极简后台任务         | ✅ 原生无依赖<br>❌ 功能简单，无链式调度 |
+| **AlarmManager**    | 精确定时任务（如闹钟）       | ✅ 轻量<br>❌ 受 Doze 模式影响，无法保证执行 |
+| **协程**            | 页面内短时任务               | ✅ 绑定生命周期<br>❌ 无持久化、重启不恢复 |
+
+## 五、面试高频问题与回答思路
+
+**Q1：WorkManager 如何保证任务重启后仍能执行？**  
+答：WorkManager 会将任务信息持久化到本地数据库（基于 Room），应用重启或设备重启时，系统会重新加载任务，并根据约束条件继续调度。
+
+**Q2：WorkManager 最小调度周期是多少？为什么？**  
+答：最小周期为 **15 分钟**（Android 6.0+）。这是系统出于省电考虑，将多个周期性任务合并执行，避免频繁唤醒设备。
+
+**Q3：如何实现任务的重试机制？**  
+答：在 `Worker` 的 `doWork()` 中捕获异常，返回 `Result.retry()`，并通过 `setBackoffCriteria()` 配置重试策略（线性退避 `LINEAR` 或指数退避 `EXPONENTIAL`）。
+
+**Q4：WorkManager 和 Handler 的区别？**  
+答：`Handler` 用于主线程消息循环，无法处理后台任务；而 `WorkManager` 支持后台持久化、约束调度，适合长期运行且需保证执行的后台任务。
+
+## 六、总结
+
+WorkManager 是 Android 开发中处理后台任务的首选框架，核心优势在于 **兼容性强、任务可靠、智能调度**，能满足绝大多数需要**延迟执行、保证最终效果**的业务场景。
