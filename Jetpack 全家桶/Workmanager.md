@@ -48,7 +48,7 @@
 ## 三、关键 API 与代码实现（面试实操）
 
 ### 1. 基础使用（单次任务）
-
+```kotlin
 // 1. 自定义 Worker
 class LogUploadWorker(context: Context, params: WorkerParameters) : Worker(context, params) {
     override fun doWork(): Result {
@@ -58,42 +58,12 @@ class LogUploadWorker(context: Context, params: WorkerParameters) : Worker(conte
     }
 }
 
- 2. 提交任务
+// 2. 提交任务
 val inputData = Data.Builder().putString("user_id", "10086").build()
 val workRequest = OneTimeWorkRequestBuilder<LogUploadWorker>()
     .setInputData(inputData)
     .build()
 WorkManager.getInstance(this).enqueue(workRequest)
-
-2. 约束配置（WiFi + 充电）
-val constraints = Constraints.Builder()
-    .setRequiredNetworkType(NetworkType.UNMETERED) // WiFi
-    .setRequiresCharging(true) // 充电时执行
-    .build()
-
-val workRequest = OneTimeWorkRequestBuilder<FileDownloadWorker>()
-    .setConstraints(constraints)
-    .build()
-
-4. 周期性任务（15 分钟）
-val periodicWork = PeriodicWorkRequestBuilder<DataSyncWorker>(15, TimeUnit.MINUTES)
-    .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
-    .build()
-WorkManager.getInstance(this).enqueue(periodicWork)
-⚠️ 注意：最小周期为 15 分钟（受系统限制）。
-
-5. 任务监听与取消
-// 监听状态
-WorkManager.getInstance(this).getWorkInfoByIdLiveData(workRequest.id)
-    .observe(this) { info ->
-        when (info.state) {
-            WorkInfo.State.SUCCEEDED -> println("成功")
-            WorkInfo.State.FAILED -> println("失败")
-        }
-    }
-
-// 取消任务
-WorkManager.getInstance(this).cancelWorkById(workRequest.id)
 
 
 ## 四、与替代方案对比（面试加分项）
