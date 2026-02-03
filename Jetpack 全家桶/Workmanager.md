@@ -67,16 +67,28 @@ WorkManager.getInstance(this).enqueue(workRequest)
 
 ```
 
-### 2. 约束配置（WiFi + 充电）
+### 2. 约束配置（WiFi + 充电时执行大文件下载）
 ```kotlin
-val constraints = Constraints.Builder()
-    .setRequiredNetworkType(NetworkType.UNMETERED) // WiFi
-    .setRequiresCharging(true) // 充电时执行
+结合设备约束，仅满足条件时执行，适配大文件下载、全量备份场景。
+
+import androidx.work.Constraints
+import androidx.work.NetworkType
+import androidx.work.OneTimeWorkRequestBuilder
+
+// 构建约束条件
+val downloadConstraints = Constraints.Builder()
+    .setRequiredNetworkType(NetworkType.UNMETERED) // 仅WiFi网络
+    .setRequiresCharging(true) // 仅充电时执行
+    .setRequiresBatteryNotLow(true) // 电量充足
     .build()
 
-val workRequest = OneTimeWorkRequestBuilder<FileDownloadWorker>()
-    .setConstraints(constraints)
+// 构建带约束的任务
+val downloadWork = OneTimeWorkRequestBuilder<FileDownloadWorker>()
+    .setConstraints(downloadConstraints) // 绑定约束
     .build()
+
+// 提交任务
+WorkManager.getInstance(this).enqueue(downloadWork)
 ```
 
 ### 3. 周期性任务（15 分钟）
@@ -90,8 +102,9 @@ WorkManager.getInstance(this).enqueue(periodicWork)
 ```
 
 ### 4.链式任务调度（串行执行：下载→解压→导入）
-    支持串行 / 并行编排任务，适用于多步骤依赖的复杂业务。
 ```kotlin
+  支持串行 / 并行编排任务，适用于多步骤依赖的复杂业务。
+
 val downloadWork = OneTimeWorkRequestBuilder<DownloadWorker>().build()
 val unzipWork = OneTimeWorkRequestBuilder<UnzipWorker>().build()
 val importWork = OneTimeWorkRequestBuilder<ImportWorker>().build()
