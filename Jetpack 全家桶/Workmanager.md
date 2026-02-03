@@ -65,6 +65,42 @@ val workRequest = OneTimeWorkRequestBuilder<LogUploadWorker>()
     .build()
 WorkManager.getInstance(this).enqueue(workRequest)
 
+
+// 3. 约束配置（WiFi + 充电）
+kotlin
+val constraints = Constraints.Builder()
+    .setRequiredNetworkType(NetworkType.UNMETERED) // WiFi
+    .setRequiresCharging(true) // 充电时执行
+    .build()
+
+val workRequest = OneTimeWorkRequestBuilder<FileDownloadWorker>()
+    .setConstraints(constraints)
+    .build()
+
+
+// 4. 周期性任务（15 分钟）
+kotlin
+val periodicWork = PeriodicWorkRequestBuilder<DataSyncWorker>(15, TimeUnit.MINUTES)
+    .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
+    .build()
+WorkManager.getInstance(this).enqueue(periodicWork)
+⚠️ 注意：最小周期为 15 分钟（受系统限制）。
+
+
+// 5. 任务监听与取消
+kotlin
+// 监听状态
+WorkManager.getInstance(this).getWorkInfoByIdLiveData(workRequest.id)
+    .observe(this) { info ->
+        when (info.state) {
+            WorkInfo.State.SUCCEEDED -> println("成功")
+            WorkInfo.State.FAILED -> println("失败")
+        }
+    }
+
+// 取消任务
+WorkManager.getInstance(this).cancelWorkById(workRequest.id)
+
 ```
 
 ## 四、与替代方案对比（面试加分项）
