@@ -86,9 +86,25 @@ val periodicWork = PeriodicWorkRequestBuilder<DataSyncWorker>(15, TimeUnit.MINUT
     .build()
 WorkManager.getInstance(this).enqueue(periodicWork)
 ⚠️ 注意：最小周期为 15 分钟（受系统限制）。
+
 ```
 
-###  4. 任务监听与取消
+### 4.链式任务调度（串行执行：下载→解压→导入）
+    支持串行 / 并行编排任务，适用于多步骤依赖的复杂业务。
+```kotlin
+val downloadWork = OneTimeWorkRequestBuilder<DownloadWorker>().build()
+val unzipWork = OneTimeWorkRequestBuilder<UnzipWorker>().build()
+val importWork = OneTimeWorkRequestBuilder<ImportWorker>().build()
+
+// 串行执行：下载 → 解压 → 导入
+WorkManager.getInstance(this)
+    .beginWith(downloadWork)    // 第一步
+    .then(unzipWork)            // 第二步
+    .then(importWork)           // 第三步
+    .enqueue()
+```
+
+###  5. 任务监听与取消
 ```kotlin
 // 监听状态
 WorkManager.getInstance(this).getWorkInfoByIdLiveData(workRequest.id)
