@@ -1,4 +1,4 @@
-# 面试者视角：WorkManager 核心总结（Android 高频考点）
+#  WorkManager 核心总结
 
 ## 一、核心定位与适用场景（必背）
 
